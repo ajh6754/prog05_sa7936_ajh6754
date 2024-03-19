@@ -1588,10 +1588,64 @@ fun typeof (e, globals, functions, formals) =
           end
 
       (* function [[ty]], checks type of expression given $\itenvs$ ((prototype)) 348 *)
-      | ty (AMAKE (len, init)) = raise LeftAsExercise "AMAKE"
-      | ty (ASIZE a) = raise LeftAsExercise "ASIZE"
-      | ty (AAT (a, i)) = raise LeftAsExercise "AAT"
-      | ty (APUT (a, i, e)) = raise LeftAsExercise "APUT"
+      | ty (AMAKE (len, init)) = 
+          (* first we want to typecheck our arguments *)
+          let
+             val len_ty = ty len
+             val init_ty = ty init
+          in 
+          (* now we want to return the type of array, ensuring that
+             the type for length given is actually an int first *)
+             if (eqType (len_ty, INTTY)) then
+                ARRAYTY init_ty
+             else 
+                raise TypeError "give a proper int for a length please"
+          end
+      | ty (ASIZE a) =
+          (* we must typecheck our argument, a, and ensure it is an array *)
+          let 
+             val a_ty = ty a
+          in 
+             (* array type is tricky, but using case of we can ignore the
+                type of array it actually is and give back an INTTY for len *)
+             case a_ty of
+                ARRAYTY x => INTTY
+                | _ => raise TypeError "arg is not an array, why"
+          end
+      | ty (AAT (a, i)) = 
+          let
+             (* as usual, check types of args *)
+             val a_ty = ty a
+             val i_ty = ty i
+          in 
+             (* check if a is an array first, get the type *)
+             case a_ty of
+                ARRAYTY x => 
+                   (* now ensure that i is an integer *)
+                   if (eqType (i_ty, INTTY)) then
+                      x
+                   else
+                      raise TypeError "can't find non-int index"
+                | _ => raise TypeError "why you no give array"
+          end
+      | ty (APUT (a, i, e)) =
+          let
+             (* check arg types first and foremost *)
+             val a_ty = ty a 
+             val i_ty = ty i
+             val e_ty = ty e
+          in 
+             (* first, check that a is an array of some arbitrary type *)
+             case a_ty of
+                ARRAYTY x =>
+                   (* ensure e is the same type as array's elements,
+                      and also ensure that index is an int *)
+                   if (eqType (i_ty, INTTY) andalso eqType (e_ty, x)) then
+                      x
+                   else
+                      raise TypeError "you gave a bad index or value"
+                | _ => raise TypeError "you didn't give an array"
+           end
 
     (* type declarations for consistency checking *)
     val _ = op ty : exp -> ty
