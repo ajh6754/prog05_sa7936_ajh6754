@@ -1844,18 +1844,39 @@ val _ = op eqTypes : tyex list * tyex list -> bool
 (* type checking for {\tuscheme} ((prototype)) 366 *)
 fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
   let
-    fun ty (LITERAL (NUM n)) = raise LeftAsExercise "LITERAL/NUM"
-      | ty (LITERAL (BOOLV b)) = raise LeftAsExercise "LITERAL/BOOL"
-      | ty (LITERAL (SYM s)) = raise LeftAsExercise "LITERAL/SYM"
+    fun ty (LITERAL (NUM n)) = TYCON "int" 
+      | ty (LITERAL (BOOLV b)) = TYCON "bool"
+      | ty (LITERAL (SYM s)) = TYCON "sym"
       | ty (LITERAL NIL) = raise LeftAsExercise "LITERAL/NIL"
       | ty (LITERAL (PAIR (h, t))) = raise LeftAsExercise "LITERAL/PAIR"
       | ty (LITERAL (CLOSURE _)) =
           raise TypeError "impossible -- CLOSURE literal"
       | ty (LITERAL (PRIMITIVE _)) =
           raise TypeError "impossible -- PRIMITIVE literal"
-      | ty (VAR x) = raise LeftAsExercise "VAR"
+        (* x is a name- find if it's in the environment *)
+      | ty (VAR x) = 
+          (* !! CURRENTLY WRONG !! *)
+          if (isbound(x,Gamma)) then
+             find(x,Gamma)
+          else
+             raise TypeError "undefined variable"
       | ty (SET (x, e)) = raise LeftAsExercise "SET"
-      | ty (IFX (e1, e2, e3)) = raise LeftAsExercise "IFX"
+      | ty (IFX (e1, e2, e3)) = 
+          let
+             (* first, get the types of every expression ready *)
+             val e1_ty = typeof(e1, Delta, Gamma)
+             val e2_ty = typeof(e2, Delta, Gamma)
+             val e3_ty = typeof(e3, Delta, Gamma)
+          in
+             (* ensure that e1 is a boolean and that type(e2) == type(e3) *)
+             case e1_ty of
+                TYCON "bool" => 
+                   if (eqType(e2_ty, e3_ty)) then 
+                      e2_ty
+                   else
+                      raise TypeError "branch types do not match"
+                | _ => raise TypeError "need a bool in the conditional"
+          end
       | ty (WHILEX (e1, e2)) = raise LeftAsExercise "WHILE"
       | ty (BEGIN es) = raise LeftAsExercise "BEGIN"
       | ty (LETX (LET, bs, body)) = raise LeftAsExercise "LETX/LET"
@@ -1875,7 +1896,16 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
 val _ = op typeof : exp * kind env * tyex env -> tyex
 fun typdef (d: def, Delta: kind env, Gamma: tyex env) : tyex env * string =
   case d of
-    VAL (name, e) => raise LeftAsExercise "VAL"
+    (* ensure that e is an expression *)
+    VAL (name, e) => 
+        let 
+           val exp_ty = typeof (e, Delta, Gamma)
+        in
+           (* extract the string type from exp_ty *)
+           case exp_ty of
+              TYCON s => (Gamma, s)
+              | _ => raise TypeError "what" (* POSSIBLE PROBLEM *)
+        end
   | EXP e => typdef (VAL ("it", e), Delta, Gamma)
   | DEFINE (name, tau, lambda as (formals, body)) =>
       raise LeftAsExercise "DEFINE"

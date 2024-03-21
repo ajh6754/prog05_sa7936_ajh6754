@@ -1618,15 +1618,14 @@ fun typeof (e, globals, functions, formals) =
              val a_ty = ty a
              val i_ty = ty i
           in 
-             (* check if a is an array first, get the type *)
-             case a_ty of
-                ARRAYTY x => 
-                   (* now ensure that i is an integer *)
-                   if (eqType (i_ty, INTTY)) then
-                      x
-                   else
-                      raise TypeError "can't find non-int index"
-                | _ => raise TypeError "why you no give array"
+             (* check if i is an actual int first *)
+             if (eqType (i_ty, INTTY)) then
+                (* now ensure that a is an actual array- return its type *)
+                case a_ty of
+                   ARRAYTY x => x 
+                   | _ => raise TypeError "why you no give array"
+             else
+                raise TypeError "can't find non-int index"
           end
       | ty (APUT (a, i, e)) =
           let
@@ -1634,7 +1633,7 @@ fun typeof (e, globals, functions, formals) =
              val a_ty = ty a 
              val i_ty = ty i
              val e_ty = ty e
-          in 
+          in
              (* first, check that a is an array of some arbitrary type *)
              case a_ty of
                 ARRAYTY x =>
