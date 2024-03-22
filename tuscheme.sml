@@ -1888,7 +1888,18 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
                       raise TypeError "branch types do not match"
                 | _ => raise TypeError "need a bool in the conditional"
           end
-      | ty (WHILEX (e1, e2)) = raise LeftAsExercise "WHILE"
+      | ty (WHILEX (e1, e2)) =
+          let
+            val tau1 = ty e1
+            val tau2 = ty e2
+          in     
+            if eqType (tau1, booltype) then
+                unittype
+            else     
+                raise TypeError
+                    ("Condition in while expression has type " ^ typeString tau1
+                 ^ ", which should be " ^ typeString booltype)
+          end
       | ty (BEGIN es) = raise LeftAsExercise "BEGIN"
       | ty (LETX (LET, bs, body)) = raise LeftAsExercise "LETX/LET"
       | ty (LETX (LETSTAR, bs, body)) = raise LeftAsExercise "LETX/LETSTAR"
