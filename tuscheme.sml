@@ -1900,7 +1900,13 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
                     ("Condition in while expression has type " ^ typeString tau1
                  ^ ", which should be " ^ typeString booltype)
           end
-      | ty (BEGIN es) = raise LeftAsExercise "BEGIN"
+      | ty (BEGIN es) =
+          (* basically the impcore version of it *)
+          let  
+            val bodytypes = map ty es
+          in     
+            List.last bodytypes handle Empty => unittype
+          end
       | ty (LETX (LET, bs, body)) = raise LeftAsExercise "LETX/LET"
       | ty (LETX (LETSTAR, bs, body)) = raise LeftAsExercise "LETX/LETSTAR"
       | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
