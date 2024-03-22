@@ -1844,9 +1844,9 @@ val _ = op eqTypes : tyex list * tyex list -> bool
 (* type checking for {\tuscheme} ((prototype)) 366 *)
 fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
   let
-    fun ty (LITERAL (NUM n)) = TYCON "int" 
-      | ty (LITERAL (BOOLV b)) = TYCON "bool"
-      | ty (LITERAL (SYM s)) = TYCON "sym"
+    fun ty (LITERAL (NUM n)) = inttype
+      | ty (LITERAL (BOOLV b)) = booltype
+      | ty (LITERAL (SYM s)) = symtype
       | ty (LITERAL NIL) = raise LeftAsExercise "LITERAL/NIL"
       | ty (LITERAL (PAIR (h, t))) = raise LeftAsExercise "LITERAL/PAIR"
       | ty (LITERAL (CLOSURE _)) =
@@ -1860,7 +1860,18 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
              find(x,Gamma)
           else
              raise TypeError "undefined variable"
-      | ty (SET (x, e)) = raise LeftAsExercise "SET"
+      | ty (SET (x, e)) =
+            let
+                val tau_x = ty (VAR x)
+                val tau_e = ty e
+            in
+                if eqType (tau_x, tau_e) then
+                    tau_x
+                else
+                    raise TypeError
+                        ("Set variable " ^ x ^ " of type " ^ typeString tau_x
+                 ^ " to value of type " ^ typeString tau_e)
+            end
       | ty (IFX (e1, e2, e3)) = 
           let
              (* first, get the types of every expression ready *)
