@@ -1855,8 +1855,8 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
           raise TypeError "impossible -- PRIMITIVE literal"
         (* x is a name- find if it's in the environment *)
       | ty (VAR x) = 
-          (* !! CURRENTLY WRONG !! *)
           if (isbound(x,Gamma)) then
+             (* determine the type of x's value *)
              find(x,Gamma)
           else
              raise TypeError "undefined variable"
@@ -1901,9 +1901,9 @@ fun typdef (d: def, Delta: kind env, Gamma: tyex env) : tyex env * string =
         let 
            val exp_ty = typeof (e, Delta, Gamma)
         in
-           (* extract the string type from exp_ty *)
+           (* extract the string type from exp_ty, bind it *)
            case exp_ty of
-              TYCON s => (Gamma, s)
+              TYCON s => ((name,exp_ty)::Gamma, s)
               | _ => raise TypeError "what" (* POSSIBLE PROBLEM *)
         end
   | EXP e => typdef (VAL ("it", e), Delta, Gamma)
