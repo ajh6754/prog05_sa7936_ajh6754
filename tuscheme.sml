@@ -1907,7 +1907,14 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
           in     
             List.last bodytypes handle Empty => unittype
           end
-      | ty (LETX (LET, bs, body)) = raise LeftAsExercise "LETX/LET"
+      | ty (LETX (LET, bs, body)) = 
+          let  
+              val newGamma = bindList
+                  (map (fn (x,e) => x) bs, map (fn (x,e) => ty e) bs,  
+                  Gamma)
+          in   
+              typeof (body, Delta, newGamma)
+          end
       | ty (LETX (LETSTAR, bs, body)) = raise LeftAsExercise "LETX/LETSTAR"
       | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
       | ty (LAMBDA (formals, body)) = raise LeftAsExercise "LAMBDA"
