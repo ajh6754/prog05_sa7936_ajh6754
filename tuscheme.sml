@@ -1915,7 +1915,18 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
           in   
               typeof (body, Delta, newGamma)
           end
-      | ty (LETX (LETSTAR, bs, body)) = raise LeftAsExercise "LETX/LETSTAR"
+      | ty (LETX (LETSTAR, bs, body)) =
+          (* pull <x1,e1> from the letstar and recurse until n=0 *)
+          (case bs of
+             (name, value) :: rest =>
+                 (* use let to create the new expression *)
+                 let 
+                    val new_exp = LETX (LET, (name,value)::[], LETX(LETSTAR,rest,body))
+                 in
+                    typeof(new_exp, Delta, Gamma)
+                 end
+             (* when finished with the lets, evaluate the type of the body *)
+             | _ => typeof(body, Delta, Gamma))
       | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
       | ty (LAMBDA (formals, body)) = raise LeftAsExercise "LAMBDA"
       | ty (APPLY (f, actuals)) = raise LeftAsExercise "APPLY"
