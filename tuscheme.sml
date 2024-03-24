@@ -1984,17 +1984,15 @@ fun typdef (d: def, Delta: kind env, Gamma: tyex env) : tyex env * string =
         end
   | EXP e => typdef (VAL ("it", e), Delta, Gamma)
   | DEFINE (name, tau, lambda as (formals, body)) =>
-      let 
+      let  
          (* get type of t1 x t2 ... -> tau *)
-         (* appending (name,tau) to Gamma creates an APPLY error *)
-         (* there is no FUNTY to work with for some reason in APPLY *)
-         (* removing that error and returing the type causes 1 
-            APPLY test to fail, but all DEFINE tests pass... *)
-         val l_ty = typeof(LAMBDA lambda, Delta, (name,tau)::Gamma)
-      in
+         (* got this with using FUNTY and map to get each ty of a formal *)
+         (* assuming didn't need to append to Gamma because VALREC does that *)
+         val l_ty = FUNTY (map (fn (x,ty) => ty) formals, tau) 
+      in   
          (* call typdef with VALREC *)
          typdef(VALREC (name, l_ty, LAMBDA lambda), Delta, Gamma)
-      end 
+      end  
  | VALREC (name, tau, e) => 
      (* ensure that e has form LAMBDA *)
      let  
