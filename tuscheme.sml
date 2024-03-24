@@ -1931,32 +1931,15 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
       | ty (LAMBDA (formals, body)) = 
           (* need to have a list of formals' types, 
              but also a new Gamma to store the bindings *)
-          let
-             (* need to check that t is a valid type in Delta*)
-             fun check_type (n,t) =
-                case (kindof (t, Delta)) of
-                   (* if kindof doesn't fail, ensure no invalid TYCON *)
-                   _ =>
-                      (case t of
-                         TYCON _ => (*check if it's for one of the 4*)
-                            if (eqType(t, inttype) orelse eqType(t, booltype)
-                                orelse eqType(t, symtype) 
-                                orelse eqType(t,unittype)) then
-                                   t
-                            else
-                                raise TypeError "invalid tycon"
-                         | _ => t)
-             val formals_types = map check_type formals
+          let  
+             (* need to check that t is a valid type in Delta using the asType*)
+             val formals_types = (map (fn (x, ty) => asType (ty, Delta)) formals)
              val new_gamma = bindList
                  (map (fn (n, t) => n) formals, formals_types, Gamma)
              val ret_type = typeof(body, Delta, new_gamma)
-          in
-             (* check that the return type is in delta *)
-             case (check_type ([],ret_type)) of
-                (* if kindof doesn't fail, return FUNTY *)
-                (* want to return FUNTY (types) (return type)*)
-                _ => FUNTY (formals_types, ret_type)
-          end
+          in   
+             FUNTY (formals_types, ret_type)
+          end  
       | ty (APPLY (f, actuals)) = 
           let
              (* type check all actuals *)
