@@ -1933,7 +1933,7 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
              but also a new Gamma to store the bindings *)
           let
              (* need to check that t is a valid type in Delta*)
-             fun check_formal (n,t) =
+             fun check_type (n,t) =
                 case (kindof (t, Delta)) of
                    (* if kindof doesn't fail, ensure no invalid TYCON *)
                    _ =>
@@ -1944,14 +1944,18 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
                                 orelse eqType(t,unittype)) then
                                    t
                             else
-                                   raise TypeError "invalid tycon"
+                                raise TypeError "invalid tycon"
                          | _ => t)
-             val formals_types = map check_formal formals
+             val formals_types = map check_type formals
              val new_gamma = bindList
                  (map (fn (n, t) => n) formals, formals_types, Gamma)
+             val ret_type = typeof(body, Delta, new_gamma)
           in
-             (* want to return FUNTY (types) (return type)*)
-             FUNTY (formals_types, typeof(body, Delta, new_gamma))
+             (* check that the return type is in delta *)
+             case (check_type ([],ret_type)) of
+                (* if kindof doesn't fail, return FUNTY *)
+                (* want to return FUNTY (types) (return type)*)
+                _ => FUNTY (formals_types, ret_type)
           end
       | ty (APPLY (f, actuals)) = 
           let
@@ -1974,7 +1978,6 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
                       raise TypeError "invalid arguments"
                 | _ => raise TypeError "invalid function in apply"
           end
-
       | ty (TYLAMBDA (alphas, e)) = raise LeftAsExercise "TYLAMBDA"
       | ty (TYAPPLY (e, args)) = raise LeftAsExercise "TYAPPLY"
 
@@ -1998,7 +2001,16 @@ fun typdef (d: def, Delta: kind env, Gamma: tyex env) : tyex env * string =
   | EXP e => typdef (VAL ("it", e), Delta, Gamma)
   | DEFINE (name, tau, lambda as (formals, body)) =>
       raise LeftAsExercise "DEFINE"
-  | VALREC (name, tau, e) => raise LeftAsExercise "VALREC"
+  | VALREC (name, tau, e) => 
+     (* ensure that e has form LAMBDA *)
+     case e of
+        (LAMBDA (formals, body)) =>
+           (* ensure that type of e and type of tau are equal- then bind *)
+           if(eqType(typeof(e,Delta,(name,tau)::Gamma), tau)) then
+              ((name,tau)::Gamma, typeString (tau))
+           else
+              raise TypeError "unmatching types"
+        | _ => raise TypeError "invalid use of valrec"
 (* type declarations for consistency checking *)
 val _ = op typdef : def * kind env * tyex env -> tyex env * string
 
