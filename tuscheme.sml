@@ -1910,7 +1910,7 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
       | ty (LETX (LET, bs, body)) = 
           let  
               val newGamma = bindList
-                  (map (fn (x,e) => x) bs, map (fn (x,e) => ty e) bs,  
+                  (map (fn (n,e) => n) bs, map (fn (n,e) => ty e) bs,  
                   Gamma)
           in   
               typeof (body, Delta, newGamma)
@@ -1928,7 +1928,17 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
              (* when finished with the lets, evaluate the type of the body *)
              | _ => typeof(body, Delta, Gamma))
       | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
-      | ty (LAMBDA (formals, body)) = raise LeftAsExercise "LAMBDA"
+      | ty (LAMBDA (formals, body)) = 
+          (* need to have a list of formals' types, 
+             but also a new Gamma to store the bindings *)
+          let
+             val formals_types = map (fn (n,t) => t) formals
+             val new_gamma = bindList
+                 (map (fn (n, t) => n) formals, formals_types, Gamma)
+          in
+             (* want to return FUNTY (types) (return type)*)
+             FUNTY (formals_types, typeof(body, Delta, new_gamma))
+          end
       | ty (APPLY (f, actuals)) = raise LeftAsExercise "APPLY"
       | ty (TYLAMBDA (alphas, e)) = raise LeftAsExercise "TYLAMBDA"
       | ty (TYAPPLY (e, args)) = raise LeftAsExercise "TYAPPLY"
@@ -1950,6 +1960,11 @@ fun typdef (d: def, Delta: kind env, Gamma: tyex env) : tyex env * string =
            (* extract the string type from exp_ty, bind it *)
            case exp_ty of
               TYCON s => ((name,exp_ty)::Gamma, s)
+              (* dunno how to break FUNTY into a string with ->  *)
+              (*| FUNTY (fs_types, ret_type) => 
+                 (case ret_type of
+                    TYCON s => ((name, ret_type)::Gamma, s)
+                    | _ => raise TypeError "some wild lambda issue")*)
               | _ => raise TypeError "what" (* POSSIBLE PROBLEM *)
         end
   | EXP e => typdef (VAL ("it", e), Delta, Gamma)
