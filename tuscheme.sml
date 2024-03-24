@@ -1935,7 +1935,7 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
              (* need to check that t is a valid type in Delta*)
              fun check_formal (n,t) =
                 case (kindof (t, Delta)) of
-                   (* if kindof doesn't fail, ensure no TYCON *)
+                   (* if kindof doesn't fail, ensure no invalid TYCON *)
                    _ =>
                       (case t of
                          TYCON _ => (*check if it's for one of the 4*)
@@ -1947,10 +1947,6 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
                                    raise TypeError "invalid tycon"
                          | _ => t)
              val formals_types = map check_formal formals
-                                    (*
-                                    (fn (n,t) => 
-                                       case (kindof (t,Delta)) of
-                                       _ => t) formals*)
              val new_gamma = bindList
                  (map (fn (n, t) => n) formals, formals_types, Gamma)
           in
