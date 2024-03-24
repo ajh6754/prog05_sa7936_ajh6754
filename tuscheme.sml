@@ -1995,16 +1995,20 @@ fun typdef (d: def, Delta: kind env, Gamma: tyex env) : tyex env * string =
          (* call typdef with VALREC *)
          typdef(VALREC (name, l_ty, LAMBDA lambda), Delta, Gamma)
       end 
-  | VALREC (name, tau, e) => 
+ | VALREC (name, tau, e) => 
      (* ensure that e has form LAMBDA *)
-     case e of
-        (LAMBDA (formals, body)) =>
-           (* ensure that type of e and type of tau are equal- then bind *)
-           if(eqType(typeof(e,Delta,(name,tau)::Gamma), tau)) then
-              ((name,tau)::Gamma, typeString (tau))
-           else
-              raise TypeError "unmatching types"
-        | _ => raise TypeError "invalid use of valrec"
+     let  
+        val tau' = asType (tau, Delta)
+     in  
+        case e of 
+            (LAMBDA (formals, body)) =>
+            (* ensure that type of e and type of tau are equal- then bind *)
+                if(eqType(typeof(e,Delta,(name,tau)::Gamma), tau')) then 
+                    ((name,tau)::Gamma, typeString (tau))
+                else 
+                    raise TypeError "unmatching types"
+            | _ => raise TypeError "invalid use of valrec"
+     end
 (* type declarations for consistency checking *)
 val _ = op typdef : def * kind env * tyex env -> tyex env * string
 
