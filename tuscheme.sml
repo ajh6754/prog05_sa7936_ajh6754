@@ -1932,7 +1932,25 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
           (* need to have a list of formals' types, 
              but also a new Gamma to store the bindings *)
           let
-             val formals_types = map (fn (n,t) => t) formals
+             (* need to check that t is a valid type in Delta*)
+             fun check_formal (n,t) =
+                case (kindof (t, Delta)) of
+                   (* if kindof doesn't fail, ensure no TYCON *)
+                   _ =>
+                      (case t of
+                         TYCON _ => (*check if it's for one of the 4*)
+                            if (eqType(t, inttype) orelse eqType(t, booltype)
+                                orelse eqType(t, symtype) 
+                                orelse eqType(t,unittype)) then
+                                   t
+                            else
+                                   raise TypeError "invalid tycon"
+                         | _ => t)
+             val formals_types = map check_formal formals
+                                    (*
+                                    (fn (n,t) => 
+                                       case (kindof (t,Delta)) of
+                                       _ => t) formals*)
              val new_gamma = bindList
                  (map (fn (n, t) => n) formals, formals_types, Gamma)
           in
@@ -1957,7 +1975,9 @@ fun typdef (d: def, Delta: kind env, Gamma: tyex env) : tyex env * string =
         let 
            val exp_ty = typeof (e, Delta, Gamma)
         in
+           ((name, exp_ty)::Gamma, typeString (exp_ty))
            (* extract the string type from exp_ty, bind it *)
+           (*
            case exp_ty of
               TYCON s => ((name,exp_ty)::Gamma, s)
               (* dunno how to break FUNTY into a string with ->  *)
@@ -1965,7 +1985,7 @@ fun typdef (d: def, Delta: kind env, Gamma: tyex env) : tyex env * string =
                  (case ret_type of
                     TYCON s => ((name, ret_type)::Gamma, s)
                     | _ => raise TypeError "some wild lambda issue")*)
-              | _ => raise TypeError "what" (* POSSIBLE PROBLEM *)
+              | _ => raise TypeError "what" (* POSSIBLE PROBLEM *)*)
         end
   | EXP e => typdef (VAL ("it", e), Delta, Gamma)
   | DEFINE (name, tau, lambda as (formals, body)) =>
