@@ -1966,7 +1966,7 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
              fun check_eq (x::xs, y::ys) = eqType(x, y) andalso check_eq(xs,ys)
                 | check_eq ([], []) = true
                 | check_eq (_,_) = false
-                
+             
           in
              (* pattern match against FUNTY *)
              case typeof(f,Delta,Gamma) of
@@ -1976,7 +1976,8 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
                       ret
                    else
                       raise TypeError "invalid arguments"
-                | _ => raise TypeError "invalid function in apply"
+                (*| some_ty => some_ty *)
+                | _ => raise TypeError "non function in apply"
           end
       | ty (TYLAMBDA (alphas, e)) = raise LeftAsExercise "TYLAMBDA"
       | ty (TYAPPLY (e, args)) = raise LeftAsExercise "TYAPPLY"
@@ -2000,7 +2001,17 @@ fun typdef (d: def, Delta: kind env, Gamma: tyex env) : tyex env * string =
         end
   | EXP e => typdef (VAL ("it", e), Delta, Gamma)
   | DEFINE (name, tau, lambda as (formals, body)) =>
-      raise LeftAsExercise "DEFINE"
+      let 
+         (* get type of t1 x t2 ... -> tau *)
+         (* appending (name,tau) to Gamma creates an APPLY error *)
+         (* there is no FUNTY to work with for some reason in APPLY *)
+         (* removing that error and returing the type causes 1 
+            APPLY test to fail, but all DEFINE tests pass... *)
+         val l_ty = typeof(LAMBDA lambda, Delta, (name,tau)::Gamma)
+      in
+         (* call typdef with VALREC *)
+         typdef(VALREC (name, l_ty, LAMBDA lambda), Delta, Gamma)
+      end 
   | VALREC (name, tau, e) => 
      (* ensure that e has form LAMBDA *)
      case e of
