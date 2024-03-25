@@ -1927,7 +1927,28 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
                  end
              (* when finished with the lets, evaluate the type of the body *)
              | _ => typeof(body, Delta, Gamma))
-      | ty (LETRECX (bs, body)) = raise LeftAsExercise "LETRECX"
+      | ty (LETRECX (bs, body)) =
+        (* bs is now ((x,ty),e) *)
+        let
+            val formal_types = (map (fn ((x,ty),e) => asType (ty, Delta)) bs)
+            val new_gamma = bindList
+                (map (fn ((x,ty),e) => x) bs, formal_types, Gamma)
+            val appl = List.app
+                        (fn ((x,ty),e) =>
+                            let
+                                val t = typeof(e, Delta,new_gamma)
+                            in
+                                if not (eqType(t, ty)) then
+                                    raise TypeError "Types not matching"
+                                else
+                                    ()
+                            end) bs
+
+
+            val ret_type = typeof(body, Delta, new_gamma)
+        in
+            ret_type
+        end
       | ty (LAMBDA (formals, body)) = 
           (* need to have a list of formals' types, 
              but also a new Gamma to store the bindings *)
