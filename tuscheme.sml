@@ -1735,8 +1735,25 @@ fun tysubst (tau, varenv) =
   let
     (* definition of [[renameForallAvoiding]] for {\tuscheme} ((prototype)) 397 *)
     fun renameForallAvoiding (alphas, tau, captured) =
-       (* for each alpha, create type vars to avoid *)
-       raise LeftAsExercise "renameForallAvoiding"
+       let
+          (* function to get a new list that avoids captured *)
+          fun new_betas (alphas) =
+             case alphas of
+                a::rest => 
+                   (* if a is banned, make a new name *)
+                   if(member a captured) then
+                      freshName(a, captured)::new_betas(rest)
+                   else
+                      a::new_betas(rest)
+                | _ => []
+       in
+          (* break tau apart and construct tau' *)
+          case tau of
+             FORALL (a_list, t) =>
+                FORALL(new_betas(a_list), t)
+             | _ => raise TypeError "idk"
+       end
+
     (* type declarations for consistency checking *)
     val _ = op renameForallAvoiding : name list * tyex * name set -> tyex
     fun subst (TYVAR a) =
