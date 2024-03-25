@@ -1995,7 +1995,26 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
                 (*| some_ty => some_ty *)
                 | _ => raise TypeError "non function in apply"
           end
-      | ty (TYLAMBDA (alphas, e)) = raise LeftAsExercise "TYLAMBDA"
+      | ty (TYLAMBDA (alphas, e)) = 
+         let
+            (* get all free tyvars in Gamma *)
+            val ftvars = freetyvarsGamma (Gamma)
+         
+            (* function to insert all alphas into delta *)
+            fun insert_alphas (a_list, d) =
+               case a_list of
+                  (* check that the alpha is not in ftvars *)
+                  a::rest => 
+                      if((member a) ftvars) then
+                        raise TypeError "free ty var"
+                      else
+                        insert_alphas (rest, bind(a, TYPE, d))
+                  (* if no more left, return the new Delta *)
+                  | _ => d
+         in
+            FORALL (alphas, typeof(e, insert_alphas (alphas, Delta), Gamma))
+         end
+         
       | ty (TYAPPLY (e, args)) = raise LeftAsExercise "TYAPPLY"
 
     (* type declarations for consistency checking *)
