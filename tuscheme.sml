@@ -2038,26 +2038,10 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
             (* want to return a FORALL with the list and the tyex *)
             FORALL (alphas, typeof(e, insert_alphas (alphas, Delta), Gamma))
          end 
-      | ty (TYAPPLY (e, args)) = 
-         let 
-            (* evaluate type of e *)
-            val e_ty = typeof(e, Delta, Gamma)
-         in
-            (* convert e into a FORALL, otherwise fail *)
-            case e_ty of
-               FORALL (alphas, ret) => 
-                  (* check the lengths of each list *)
-                  if(length(alphas) = length(args)) then   
-                     (* need to substitute all alphas with args *)
-                     let
-                        (* very incomplete, dunno what to do here *)
-                     in 
-                        CONAPP (ret, args)
-                     end
-                  else
-                     raise TypeError "mismatch of args and alphas"
-               | _ => raise TypeError "this is not a polymorphic thing"
-         end
+       ty (TYAPPLY (e, args)) = 
+         (* instantiate function in textbook pg. 376 was said to be used 
+         for simultaneous, capture-avoiding substitution *)
+         instantiate((typeof(e,Delta, Gamma)), args, Delta)
     (* type declarations for consistency checking *)
     val _ = op ty : exp -> tyex
   in
