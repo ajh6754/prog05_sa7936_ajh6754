@@ -1847,7 +1847,7 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
     fun ty (LITERAL (NUM n)) = inttype
       | ty (LITERAL (BOOLV b)) = booltype
       | ty (LITERAL (SYM s)) = symtype
-      | ty (LITERAL NIL) = raise LeftAsExercise "LITERAL/NIL"
+      | ty (LITERAL NIL) = FORALL (["'a"], listtype tvA)
       | ty (LITERAL (PAIR (h, t))) =
             (* check if singleton list *)
            (case t of 
