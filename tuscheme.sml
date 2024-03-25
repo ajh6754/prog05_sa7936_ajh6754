@@ -1735,7 +1735,8 @@ fun tysubst (tau, varenv) =
   let
     (* definition of [[renameForallAvoiding]] for {\tuscheme} ((prototype)) 397 *)
     fun renameForallAvoiding (alphas, tau, captured) =
-      raise LeftAsExercise "renameForallAvoiding"
+       (* for each alpha, create type vars to avoid *)
+       raise LeftAsExercise "renameForallAvoiding"
     (* type declarations for consistency checking *)
     val _ = op renameForallAvoiding : name list * tyex * name set -> tyex
     fun subst (TYVAR a) =
@@ -1992,7 +1993,6 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
                       ret
                    else
                       raise TypeError "invalid arguments"
-                (*| some_ty => some_ty *)
                 | _ => raise TypeError "non function in apply"
           end
       | ty (TYLAMBDA (alphas, e)) = 
@@ -2012,11 +2012,29 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
                   (* if no more left, return the new Delta *)
                   | _ => d
          in
+            (* want to return a FORALL with the list and the tyex *)
             FORALL (alphas, typeof(e, insert_alphas (alphas, Delta), Gamma))
+         end 
+      | ty (TYAPPLY (e, args)) = 
+         let 
+            (* evaluate type of e *)
+            val e_ty = typeof(e, Delta, Gamma)
+         in
+            (* convert e into a FORALL, otherwise fail *)
+            case e_ty of
+               FORALL (alphas, ret) => 
+                  (* check the lengths of each list *)
+                  if(length(alphas) = length(args)) then   
+                     (* need to substitute all alphas with args *)
+                     let
+                        (* very incomplete, dunno what to do here *)
+                     in 
+                        CONAPP (ret, args)
+                     end
+                  else
+                     raise TypeError "mismatch of args and alphas"
+               | _ => raise TypeError "this is not a polymorphic thing"
          end
-         
-      | ty (TYAPPLY (e, args)) = raise LeftAsExercise "TYAPPLY"
-
     (* type declarations for consistency checking *)
     val _ = op ty : exp -> tyex
   in
@@ -2038,8 +2056,6 @@ fun typdef (d: def, Delta: kind env, Gamma: tyex env) : tyex env * string =
   | DEFINE (name, tau, lambda as (formals, body)) =>
       let  
          (* get type of t1 x t2 ... -> tau *)
-         (* got this with using FUNTY and map to get each ty of a formal *)
-         (* assuming didn't need to append to Gamma because VALREC does that *)
          val l_ty = FUNTY (map (fn (x,ty) => ty) formals, tau) 
       in   
          (* call typdef with VALREC *)
