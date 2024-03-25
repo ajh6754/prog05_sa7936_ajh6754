@@ -1737,21 +1737,27 @@ fun tysubst (tau, varenv) =
     fun renameForallAvoiding (alphas, tau, captured) =
        let
           (* function to get a new list that avoids captured *)
-          fun new_betas (alphas) =
+          fun new_betas (alphas, banned) =
              case alphas of
                 a::rest => 
                    (* if a is banned, make a new name *)
-                   if(member a captured) then
-                      freshName(a, captured)::new_betas(rest)
+                   if(member a banned) then
+                      let
+                         val new = freshName(a, banned)
+                      in 
+                         new::new_betas(rest, union(new::[],banned))
+                      end
                    else
-                      a::new_betas(rest)
+                      a::new_betas(rest, union(a::[],banned))
                 | _ => []
+          (* the full list of banned variables *)
+          val full_banned = union(union(captured,alphas),freetyvars(tau))
+
+          (* the actual new list itself *)
+          val betas = new_betas(alphas, full_banned)
        in
-          (* break tau apart and construct tau' *)
-          case tau of
-             FORALL (a_list, t) =>
-                FORALL(new_betas(a_list), t)
-             | _ => raise TypeError "idk"
+          (* make a substitution with new alphas *)
+          FORALL(betas, tysubst(tau, mkEnv(alphas, map TYVAR betas)))
        end
 
     (* type declarations for consistency checking *)
