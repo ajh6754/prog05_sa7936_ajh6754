@@ -1848,7 +1848,19 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
       | ty (LITERAL (BOOLV b)) = booltype
       | ty (LITERAL (SYM s)) = symtype
       | ty (LITERAL NIL) = raise LeftAsExercise "LITERAL/NIL"
-      | ty (LITERAL (PAIR (h, t))) = raise LeftAsExercise "LITERAL/PAIR"
+      | ty (LITERAL (PAIR (h, t))) =
+            (* check if singleton list *)
+           (case t of 
+                NIL => listtype (ty (LITERAL h))
+              | _ => 
+                    let  
+                        val t_h = ty (LITERAL h)
+                        val t_t = ty (LITERAL t)
+                    in   
+                        if not (eqType (listtype t_h, t_t))
+                        then raise TypeError "pair has to be made of same type"
+                        else t_t
+                    end)
       | ty (LITERAL (CLOSURE _)) =
           raise TypeError "impossible -- CLOSURE literal"
       | ty (LITERAL (PRIMITIVE _)) =
