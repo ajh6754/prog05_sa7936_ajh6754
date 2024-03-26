@@ -2021,14 +2021,14 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
       | ty (TYLAMBDA (alphas, e)) = 
          let
             (* get all free tyvars in Gamma *)
-            val ftvars = freetyvarsGamma (Gamma)
+            val ftvars = freetyvarsGamma Gamma
          
             (* function to insert all alphas into delta *)
             fun insert_alphas (a_list, d) =
                case a_list of
                   (* check that the alpha is not in ftvars *)
                   a::rest => 
-                      if((member a) ftvars) then
+                      if(member a ftvars) then
                         raise TypeError "free ty var"
                       else
                         insert_alphas (rest, bind(a, TYPE, d))
@@ -2038,7 +2038,7 @@ fun typeof (e: exp, Delta: kind env, Gamma: tyex env) : tyex =
             (* want to return a FORALL with the list and the tyex *)
             FORALL (alphas, typeof(e, insert_alphas (alphas, Delta), Gamma))
          end 
-       ty (TYAPPLY (e, args)) = 
+      | ty (TYAPPLY (e, args)) = 
          (* instantiate function in textbook pg. 376 was said to be used 
          for simultaneous, capture-avoiding substitution *)
          instantiate((typeof(e,Delta, Gamma)), args, Delta)
@@ -3032,6 +3032,8 @@ val primBasis =
         ("sym", TYPE) ::
         ("unit", TYPE) ::
         ("list", ARROW ([TYPE], TYPE)) ::
+        (* TYPE CONSTRUCTOR FOR PAIR *)
+        ("pair", ARROW ([TYPE, TYPE], TYPE)) ::
         (* primitive type constructor for binary trees (see Recitation 07) *)
         ("btree", ARROW ([TYPE], TYPE)) :: 
         [])
@@ -3048,6 +3050,30 @@ val primBasis =
        ( "null?"
        , unaryOp (BOOLV o (fn (NIL) => true | _ => false))
        , FORALL (["'a"], FUNTY ([listtype tvA], booltype))
+       )
+       ::
+       (* PRIMITIVE FUNCTIONS PAIR, FST, AND SND *)
+       ( "pair"
+       , binaryOp (fn (x,y) => PAIR(pair x y))
+       , FORALL (["'a", "'b"], FUNTY ([tvA, tvB], pairtype (tvA, tvB)))
+       )
+       ::
+       ( "fst"
+       (*, binaryOp fst*)
+       , unaryOp (fn (x) => 
+                    case x of
+                       PAIR(a,b) => a
+                       | _ => raise RuntimeError "you messed up")
+       , FORALL (["'a", "'b"], FUNTY ([pairtype (tvA, tvB)], tvA))
+       )
+       ::
+       ( "snd"
+       (*, binaryOp snd*)
+       , unaryOp (fn (x) =>
+                    case x of
+                       PAIR(a,b) => b
+                       | _ => raise RuntimeError "wrong args buddy")
+       , FORALL (["'a", "'b"], FUNTY ([pairtype (tvA, tvB)], tvB))
        )
        ::
        ( "cons"
